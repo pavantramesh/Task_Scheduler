@@ -1,0 +1,104 @@
+#include "eventScheduler.h"
+#include <stdio.h>
+
+#define MAX_USERS 10
+
+int main() {
+    EventQueue eventQueue;
+    initializeQueue(&eventQueue);
+
+    User users[MAX_USERS] = {
+        {"nandakumar", "nandakumar123"},
+        {"user2", "pass2"},
+		{"user3", "pass3"},
+		{"user4", "pass4"},
+		{"user2", "pass2"},
+		{"user2", "pass2"},
+    };
+    int numUsers = sizeof(users) / sizeof(users[0]);
+	int userIndex;
+	int startHour, startMinute, endHour, endMinute;
+
+    int choice;
+    char username[MAX_USERNAME_LENGTH];
+    char password[MAX_PASSWORD_LENGTH];
+
+    printf("Enter your username: ");
+    scanf("%s", username);
+    printf("Enter your password: ");
+    scanf("%s", password);
+
+    if (!authenticateUser(users, numUsers, username, password, &userIndex)) {
+        printf("Authentication failed. Exiting...\n");
+        return 1;
+    }
+
+    do {
+        printf("\nEvent Scheduler Menu:\n");
+        printf("1. Add Event\n");
+        printf("2. Delete Event\n");
+        printf("3. List Events\n");
+        printf("4. Edit Event\n");
+        printf("5. Save Events\n");
+        printf("6. Load Events\n");
+        printf("7. Sort Events\n");
+        printf("8. Exit\n");
+
+        printf("Enter your choice: ");
+        scanf("%d", &choice);
+
+        switch (choice) {
+            case 1: {
+                Event newEvent;
+                printf("Enter Event Title: ");
+                scanf("%s", newEvent.title);
+                printf("Enter Event Description: ");
+                scanf("%s", newEvent.description);
+                printf("Enter Event Venue: ");
+                scanf("%s", newEvent.venue);
+                printf("Enter Event Time (float): ");
+                scanf("%f", &newEvent.time);
+                enqueue(&eventQueue, &newEvent);
+                break;
+            }
+            case 2:
+                dequeue(&eventQueue);
+                break;
+            case 3:
+                listEvents(&eventQueue);
+                break;
+            case 4: {
+                int eventIndex;
+                printf("Enter the index of the event to edit: ");
+                scanf("%d", &eventIndex);
+                editEvent(&eventQueue, eventIndex);
+                break;
+            }
+            case 5: {
+                char filename[50];
+                printf("Enter the filename to save events: ");
+                scanf("%s", filename);
+                saveEvents(&eventQueue, filename);
+                break;
+            }
+            case 6: {
+                char filename[50];
+                printf("Enter the filename to load events: ");
+                scanf("%s", filename);
+                loadEvents(&eventQueue, filename);
+                break;
+            }
+            case 7:
+                sortEvents(&eventQueue);
+				printf("Events sorted successfully.\n");
+				break;
+            case 8:
+                printf("Exiting the Event Scheduler.\n");
+                break;
+            default:
+                printf("Invalid choice. Please enter a number between 1 and 8.\n");
+        }
+    } while (choice != 8);
+
+    return 0;
+}

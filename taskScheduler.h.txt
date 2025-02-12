@@ -1,0 +1,45 @@
+#ifndef EVENT_SCHEDULER_H
+#define EVENT_SCHEDULER_H
+
+#define MAX_TITLE_LENGTH 50
+#define MAX_DESCRIPTION_LENGTH 100
+#define MAX_VENUE_LENGTH 50
+#define MAX_EVENTS 100
+#define MAX_USERS 10
+#define MAX_USERNAME_LENGTH 20
+#define MAX_PASSWORD_LENGTH 20
+
+typedef struct {
+    char title[MAX_TITLE_LENGTH];
+    char description[MAX_DESCRIPTION_LENGTH];
+    char venue[MAX_VENUE_LENGTH];
+    float time;  // Updated to use float for time
+    // Add other event-related fields as needed
+} Event;
+
+typedef struct {
+    Event events[MAX_EVENTS];
+    int front, rear;
+} EventQueue;
+
+typedef struct {
+    char username[MAX_USERNAME_LENGTH];
+    char password[MAX_PASSWORD_LENGTH];
+} User;
+
+void initializeQueue(EventQueue *queue);
+int isQueueFull(const EventQueue *queue);
+int isQueueEmpty(const EventQueue *queue);
+void enqueue(EventQueue *queue, const Event *event);
+void dequeue(EventQueue *queue);
+void listEvents(const EventQueue *queue);
+void editEvent(EventQueue *queue, int eventIndex);
+void saveEvents(const EventQueue *queue, const char *filename);
+void loadEvents(EventQueue *queue, const char *filename);
+void sortEvents(EventQueue *queue);
+
+
+int authenticateUser(const User *users, int numUsers, const char *username, const char *password, int *userIndex);
+void createUser(User *users, int *numUsers);
+
+#endif

@@ -1,0 +1,240 @@
+#include "eventScheduler.h"
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+void initializeQueue(EventQueue *queue) {
+    queue->front = -1;
+    queue->rear = -1;
+}
+
+int isQueueFull(const EventQueue *queue) {
+    return (queue->rear + 1) % MAX_EVENTS == queue->front;
+}
+
+int isQueueEmpty(const EventQueue *queue) {
+    return queue->front == -1;
+}
+
+void enqueue(EventQueue *queue, const Event *event) {
+    if (isQueueFull(queue)) {
+        printf("Queue is full. Cannot add more events.\n");
+        return;
+    }
+
+    if (isQueueEmpty(queue)) {
+        queue->front = 0;
+    }
+
+    // Check for time conflicts
+    for (int i = queue->front; i != (queue->rear + 1) % MAX_EVENTS; i = (i + 1) % MAX_EVENTS) {
+        if (event->time == queue->events[i].time) {
+            printf("Error: Time conflict with existing event '%s'. Cannot add event.\n", queue->events[i].title);
+            return;
+        }
+		
+    }
+
+    // Add the event to the queue
+	 queue->rear = (queue->rear + 1) % MAX_EVENTS;
+    strcpy(queue->events[queue->rear].title, event->title);
+    strcpy(queue->events[queue->rear].description, event->description);
+    strcpy(queue->events[queue->rear].venue, event->venue);
+    queue->events[queue->rear].time = event->time;
+
+    printf("Event added successfully.\n");
+   
+}
+
+
+
+void dequeue(EventQueue *queue) {
+    if (isQueueEmpty(queue)) {
+        printf("Queue is empty. No events to delete.\n");
+        return;
+    }
+
+    printf("Deleting event: %s\n", queue->events[queue->front].title);
+    if (queue->front == queue->rear) {
+        initializeQueue(queue);
+    } else {
+        queue->front = (queue->front + 1) % MAX_EVENTS;
+    }
+}
+
+void listEvents(const EventQueue *queue) {
+    if (isQueueEmpty(queue)) {
+        printf("No events to display.\n");
+        return;
+    }
+
+    printf("List of Events:\n");
+    int i = queue->front;
+    do {
+        printf("Title: %s\n", queue->events[i].title);
+        printf("Description: %s\n", queue->events[i].description);
+        printf("Venue: %s\n", queue->events[i].venue);
+        printf("Time: %.2f\n", queue->events[i].time);
+        printf("------------------------\n");
+        i = (i + 1) % MAX_EVENTS;
+    } while (i != (queue->rear + 1) % MAX_EVENTS);
+}
+
+void editEvent(EventQueue *queue, int eventIndex) {
+    if (isQueueEmpty(queue) || eventIndex < 0 || eventIndex >= MAX_EVENTS) {
+        printf("Invalid event index.\n");
+        return;
+    }
+
+    int actualIndex = (queue->front + eventIndex) % MAX_EVENTS;
+
+    if (actualIndex < queue->front || actualIndex > queue->rear) {
+        printf("Event not found at index %d.\n", eventIndex);
+        return;
+    }
+
+    // Get the existing event at the specified index
+    Event *event = &queue->events[actualIndex];
+
+
+
+    printf("Editing event at index %d\n", eventIndex);
+
+    printf("Enter new title: ");
+    scanf("%s", event->title);
+    printf("Enter new description: ");
+    scanf("%s", event->description);
+    printf("Enter new venue: ");
+    scanf("%s", event->venue);
+    printf("Enter new time: ");
+    scanf("%f", &event->time);
+	
+	    // Check for time conflicts with other events
+    for (int i = queue->front; i != (queue->rear + 1) % MAX_EVENTS; i = (i + 1) % MAX_EVENTS) {
+        if (i != actualIndex && event->time == queue->events[i].time) {
+            printf("Error: Time conflict with existing event '%s'. Cannot edit event.\n", queue->events[i].title);
+            return;
+        }
+    }
+	
+
+    printf("Event edited successfully.\n");
+}
+
+void saveEvents(const EventQueue *queue, const char *filename) {
+    FILE *file = fopen(filename, "w");
+    if (file == NULL) {
+        printf("Error opening file for writing.\n");
+        return;
+    }
+
+    // Check for time conflicts before saving events
+    for (int i = queue->front; i != (queue->rear + 1) % MAX_EVENTS; i = (i + 1) % MAX_EVENTS) {
+        for (int j = i + 1; j != (queue->rear + 1) % MAX_EVENTS; j = (j + 1) % MAX_EVENTS) {
+            if (queue->events[i].time == queue->events[j].time) {
+                printf("Error: Time conflict between events '%s' and '%s'. Cannot save events.\n",
+                       queue->events[i].title, queue->events[j].title);
+                fclose(file);
+                return;
+            }
+        }
+    }
+
+    // Save events to the file
+    for (int i = queue->front; i != (queue->rear + 1) % MAX_EVENTS; i = (i + 1) % MAX_EVENTS) {
+        fprintf(file, "Title: %s\nDescription: %s\nVenue: %s\nTime: %.2f\n",
+                queue->events[i].title, queue->events[i].description, queue->events[i].venue, queue->events[i].time);
+        // Add other event-related information as needed
+        fprintf(file, "----------\n");
+    }
+
+    fclose(file);
+    printf("Events saved to %s successfully.\n", filename);
+}
+
+
+
+void loadEvents(EventQueue *queue, const char *filename) {
+    FILE *file = fopen(filename, "r");
+    if (file == NULL) {
+        printf("Error opening file for reading.\n");
+        return;
+    }
+
+    Event event;
+    int eventCount = 0;
+    printf("Loading Events from %s:\n", filename);
+
+    while (fscanf(file, "Title: %49[^\n]\nDescription: %99[^\n]\nVenue: %49[^\n]\nTime: %f\n",
+            event.title, event.description, event.venue, &event.time) == 4) {
+        enqueue(queue, &event);
+
+        // Display the loaded event
+        printf("-------------------------\n");
+        printf("Loaded Event %d:\n", eventCount + 1);
+        printf("Title: %s\n", event.title);
+        printf("Description: %s\n", event.description);
+        printf("Venue: %s\n", event.venue);
+        printf("Time: %.2f\n", event.time);
+        printf("------------------------\n");
+
+        eventCount++;
+    }
+
+    fclose(file);
+    printf("%d events loaded from %s successfully.\n", eventCount, filename);
+    printf("------------------------\n");
+}
+
+void sortEvents(EventQueue *queue) {
+    if (isQueueEmpty(queue) || (queue->front == queue->rear)) {
+        printf("Not enough events to sort.\n");
+        return;
+    }
+
+    int swapped;
+    Event temp;
+
+    do {
+        swapped = 0;
+        for (int i = queue->front; i < queue->rear; i++) {
+            if (queue->events[i].time > queue->events[i + 1].time) {
+                // Swap events if they are out of order
+                temp = queue->events[i];
+                queue->events[i] = queue->events[i + 1];
+                queue->events[i + 1] = temp;
+                swapped = 1;
+            }
+        }
+    } while (swapped);
+    
+    printf("Events sorted successfully.\n");
+}
+
+int authenticateUser(const User *users, int numUsers, const char *username, const char *password, int *userIndex) {
+    for (int i = 0; i < numUsers; ++i) {
+        if (strcmp(users[i].username, username) == 0 && strcmp(users[i].password, password) == 0) {
+            *userIndex = i;
+            return 1;  // Authentication successful
+        }
+    }
+    return 0;  // Authentication failed
+}
+
+void createUser(User *users, int *numUsers) {
+    if (*numUsers >= MAX_USERS) {
+        printf("Maximum number of users reached. Cannot create more users.\n");
+        return;
+    }
+
+    printf("Enter new username: ");
+    scanf("%s", users[*numUsers].username);
+
+    // You may want to add password confirmation logic here
+    printf("Enter password: ");
+    scanf("%s", users[*numUsers].password);
+
+    printf("User created successfully.\n");
+    (*numUsers)++;
+}
+
